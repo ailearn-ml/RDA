@@ -1,6 +1,6 @@
-# Code for RDA
+# Code and Appendix for RDA.
 
-Code for "Imbalanced Label Distribution Learning" in AAAI 2023.
+Code and Appendix for "Imbalanced Label Distribution Learning" in AAAI 2023.
 
 ## Requirements
 
