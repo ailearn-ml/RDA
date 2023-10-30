@@ -171,7 +171,8 @@ class ResampleLoss(nn.Module):
 def cross_entropy(pred, label, weight=None, reduction='mean', avg_factor=None):
     pred = torch.exp(pred - torch.max(pred, dim=1, keepdim=True)[0])
     pred = pred / torch.sum(pred, dim=1, keepdim=True)
-    loss = label * torch.log(torch.maximum(label / pred, torch.tensor([1e-14]).to(label.device)))
+    loss = label * torch.log(torch.maximum(label / torch.maximum(pred, torch.tensor([1e-14]).to(label.device)),
+                                           torch.tensor([1e-14]).to(label.device)))
 
     # apply weights and do the reduction
     if weight is not None:
