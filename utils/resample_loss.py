@@ -65,22 +65,38 @@ class ResampleLoss(nn.Module):
         self.freq_inv = torch.ones(self.class_freq.shape) / self.class_freq
         self.propotion_inv = self.train_num / self.class_freq
 
-    def forward(self, cls_score, label, weight=None, avg_factor=None, reduction_override=None, **kwargs):
+    def forward(self,
+                cls_score,
+                label,
+                weight=None,
+                avg_factor=None,
+                reduction_override=None,
+                **kwargs):
+
         assert reduction_override in (None, 'none', 'mean', 'sum')
-        reduction = (reduction_override if reduction_override else self.reduction)
-        if weight is not None:
-            weight = self.reweight_functions(label).to(label.device)
+        reduction = (
+            reduction_override if reduction_override else self.reduction)
+
+        if weight is None:
+            weight = self.reweight_functions(label)
+
         cls_score, weight = self.logit_reg_functions(label.float(), cls_score, weight)
+
         if self.focal:
-            logpt = self.cls_criterion(cls_score.clone(), label, weight=None, reduction='none', avg_factor=avg_factor)
+            logpt = self.cls_criterion(
+                cls_score.clone(), label, weight=None, reduction='none',
+                avg_factor=avg_factor)
             # pt is sigmoid(logit) for pos or sigmoid(-logit) for neg
             pt = torch.exp(-logpt)
-            wtloss = self.cls_criterion(cls_score, label.float(), weight=weight, reduction='none')
-            loss = self.alpha * (
-                        (1 - pt) ** self.gamma) * wtloss  ####################### balance_param should be a tensor
+            wtloss = self.cls_criterion(
+                cls_score, label.float(), weight=weight, reduction='none')
+            alpha_t = torch.where(label == 1, self.alpha, 1 - self.alpha)
+            loss = alpha_t * ((1 - pt) ** self.gamma) * wtloss  ####################### balance_param should be a tensor
             loss = reduce_loss(loss, reduction)  ############################ add reduction
         else:
-            loss = self.cls_criterion(cls_score, label.float(), weight, reduction=reduction)
+            loss = self.cls_criterion(cls_score, label.float(), weight,
+                                      reduction=reduction)
+
         loss = self.loss_weight * loss
         return loss
 
@@ -153,7 +169,9 @@ class ResampleLoss(nn.Module):
 
 
 def cross_entropy(pred, label, weight=None, reduction='mean', avg_factor=None):
-    loss = F.cross_entropy(pred, label, reduction='none')
+    pred = torch.exp(pred - torch.max(pred, dim=1, keepdim=True)[0])
+    pred = pred / torch.sum(pred, dim=1, keepdim=True)
+    loss = label * torch.log(torch.maximum(label / pred, torch.tensor([1e-14]).to(label.device)))
 
     # apply weights and do the reduction
     if weight is not None:
