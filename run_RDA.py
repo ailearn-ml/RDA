@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from utils.metrics import evaluation_KLD
 import argparse
 from utils.metrics import evaluation_lt
+import copy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='sample_data')
@@ -21,7 +22,7 @@ parser.add_argument('--max_epoch', type=int, default=300)
 parser.add_argument('--batch_size', type=int, default=50)
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--valid_size', type=int, default=20)
-parser.add_argument('--device', type=str, default='cuda:0')
+parser.add_argument('--device', type=str, default='cpu')
 parser.add_argument('--seed', type=int, default=0)
 
 
@@ -59,7 +60,7 @@ def _train():
         result = evaluation_KLD(ys, preds)
         if result < min_result:
             min_result = result
-            best_state_dict = model.state_dict()
+            best_state_dict = copy.deepcopy(model.state_dict())
     torch.save({'model': best_state_dict}, os.path.join(train_path, 'best.tar'))
     model.save(train_path, epoch=max_epoch - 1)
 
