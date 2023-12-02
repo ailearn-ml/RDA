@@ -83,16 +83,12 @@ class ResampleLoss(nn.Module):
         cls_score, weight = self.logit_reg_functions(label.float(), cls_score, weight)
 
         if self.focal:
-            logpt = self.cls_criterion(
-                cls_score.clone(), label, weight=None, reduction='none',
-                avg_factor=avg_factor)
-            # pt is sigmoid(logit) for pos or sigmoid(-logit) for neg
-            pt = torch.exp(-logpt)
-            wtloss = self.cls_criterion(
+            pt = torch.exp(cls_score - torch.max(cls_score, dim=1, keepdim=True)[0])
+            pt = pt / torch.sum(pt, dim=1, keepdim=True)
+            loss = self.cls_criterion(
                 cls_score, label.float(), weight=weight, reduction='none')
-            alpha_t = torch.where(label == 1, self.alpha, 1 - self.alpha)
-            loss = alpha_t * ((1 - pt) ** self.gamma) * wtloss  ####################### balance_param should be a tensor
-            loss = reduce_loss(loss, reduction)  ############################ add reduction
+            loss = ((1 - pt) ** self.gamma) * loss
+            loss = reduce_loss(self.alpha * loss, reduction)
         else:
             loss = self.cls_criterion(cls_score, label.float(), weight,
                                       reduction=reduction)
