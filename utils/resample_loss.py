@@ -88,7 +88,7 @@ class ResampleLoss(nn.Module):
             loss = self.cls_criterion(
                 cls_score, label.float(), weight=weight, reduction='none')
             loss = ((1 - pt) ** self.gamma) * loss
-            loss = reduce_loss(self.alpha * loss, reduction)
+            loss = reduce_loss(loss, reduction)
         else:
             loss = self.cls_criterion(cls_score, label.float(), weight,
                                       reduction=reduction)
