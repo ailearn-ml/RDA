@@ -36,7 +36,7 @@ class ResampleLoss(nn.Module):
 
         self.loss_weight = loss_weight
         self.reduction = reduction
-        self.cls_criterion = cross_entropy
+        self.cls_criterion = kl_divergence
         # reweighting function
         self.reweight_func = reweight_func
         # normalization (optional)
@@ -164,7 +164,7 @@ class ResampleLoss(nn.Module):
         return weight
 
 
-def cross_entropy(pred, label, weight=None, reduction='mean', avg_factor=None):
+def kl_divergence(pred, label, weight=None, reduction='mean', avg_factor=None):
     pred = torch.exp(pred - torch.max(pred, dim=1, keepdim=True)[0])
     pred = pred / torch.sum(pred, dim=1, keepdim=True)
     loss = label * torch.log(torch.maximum(label / torch.maximum(pred, torch.tensor([1e-14]).to(label.device)),
